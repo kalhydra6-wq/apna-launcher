@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -148,6 +149,12 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // Subtle scrim keeps icons readable on any wallpaper while the wallpaper stays visible.
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xD9101424), Color(0xD91B2350)),
+                ),
+            )
             .pointerInput(settings) {
                 detectTapGestures(
                     onDoubleTap = {
@@ -352,6 +359,17 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        // Visible drawer shortcut (works even when the swipe gesture is not detected).
+        FloatingActionButton(
+            onClick = { vm.drawerOpen.value = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 12.dp, bottom = 82.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+        ) {
+            Text("Apps", fontSize = 11.sp)
         }
 
         // Long-press empty space menu

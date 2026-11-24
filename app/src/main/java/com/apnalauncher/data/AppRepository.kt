@@ -41,6 +41,14 @@ class AppRepository(private val context: Context) {
 
     init {
         refreshApps()
+        // First run: fill the dock with sensible defaults so the home screen is never empty.
+        scope.launch {
+            val current = settings.settings.first()
+            if (current.dockApps.isEmpty()) {
+                val defaults = _apps.value.take(5).map { it.key }
+                settings.update { it.copy(dockApps = defaults) }
+            }
+        }
     }
 
     /** Re-queries the package manager after install / uninstall / update. */
