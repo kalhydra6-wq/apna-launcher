@@ -20,7 +20,7 @@ fun AppMenu(
     onUninstall: () -> Unit,
 ) {
     val context = LocalContext.current
-    DropdownMenu(onDismissRequest = onDismiss) {
+    DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
         MenuItem("App Info") { AppActions.appInfo(context, app); onDismiss() }
         MenuItem("Add to Home") { onAddToHome(); onDismiss() }
         MenuItem("Add to Dock") { onAddToDock(); onDismiss() }

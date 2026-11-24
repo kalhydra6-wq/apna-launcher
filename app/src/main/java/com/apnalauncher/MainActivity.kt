@@ -133,7 +133,7 @@ private fun LauncherRoot(
                     context.getSharedPreferences("apna", 0).edit().putBoolean("asked_notifications", true).apply()
                     showPermissionInfo = false
                     runCatching {
-                        startActivity(android.content.Intent(
+                        context.startActivity(android.content.Intent(
                             android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
                         ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
                     }

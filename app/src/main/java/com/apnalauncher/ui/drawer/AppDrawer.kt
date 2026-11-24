@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -47,10 +48,14 @@ fun AppDrawer(
 
     // Build offsets for the alphabet strip.
     val indexOffsets = remember(apps) {
-        apps.mapIndexed { i, a -> a.label.firstOrNull()?.uppercaseChar()?.toString() ?: "#" to i }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { it.value.first() }
+        val map = mutableMapOf<String, Int>()
+        apps.forEachIndexed { index, app ->
+            val letter = app.label.firstOrNull()?.uppercaseChar()?.toString() ?: "#"
+            if (!map.containsKey(letter)) map[letter] = index
+        }
+        map
     }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -129,8 +134,8 @@ fun AppDrawer(
                                 modifier = Modifier
                                     .padding(horizontal = 3.dp, vertical = 1.dp)
                                     .clickable {
-                                        indexOffsets[letter]?.let {
-                                            listState.scrollToItem(it)
+                                        indexOffsets[letter]?.let { index ->
+                                            scope.launch { listState.scrollToItem(index) }
                                         }
                                     },
                             )

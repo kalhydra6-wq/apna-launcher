@@ -1,5 +1,6 @@
 package com.apnalauncher.ui.common
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -7,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,12 +20,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.apnalauncher.ApnaLauncherApp
+import com.apnalauncher.data.AppCustom
 import com.apnalauncher.data.AppInfo
 import com.apnalauncher.data.LauncherSettings
 import com.apnalauncher.ui.theme.LocalLauncherSettings
 import androidx.compose.ui.platform.LocalContext
 
 /** App icon with custom shape, optional label and notification badge. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppIconView(
     app: AppInfo,
@@ -37,7 +41,7 @@ fun AppIconView(
     val settings = LocalLauncherSettings.current
     val context = LocalContext.current
     val repo = (context.applicationContext as ApnaLauncherApp).repo
-    val custom by repo.customs.collectAsState()
+    val custom by repo.customs.collectAsState(emptyMap<String, AppCustom>())
     val override = custom[app.key]
     val iconSource = if (override?.iconPackage != null && override.iconRes != null) {
         repo.appByKey(override.iconPackage + "/" + override.iconRes) ?: app

@@ -30,7 +30,7 @@ private val CATEGORIES = listOf("Home", "Drawer", "Icons", "Themes", "Gestures",
 fun SettingsScreen(onClose: () -> Unit) {
     val context = LocalContext.current
     val repo = (context.applicationContext as ApnaLauncherApp).repo
-    val settings by repo.settings.settings.collectAsState()
+    val settings by repo.settings.settings.collectAsState(LauncherSettings())
     var category by remember { mutableStateOf("Home") }
     var packs by remember { mutableStateOf<List<IconPackInfo>>(emptyList()) }
     val backup = remember { BackupManager(context, repo) }

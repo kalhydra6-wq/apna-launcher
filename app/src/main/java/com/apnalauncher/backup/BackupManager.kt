@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.apnalauncher.data.*
 import com.google.gson.Gson
+import kotlinx.coroutines.flow.first
 
 /** JSON export / import of the full launcher layout and settings. */
 data class LauncherBackup(
@@ -22,7 +23,7 @@ class BackupManager(private val context: Context, private val repo: AppRepositor
 
     suspend fun export(uri: Uri) {
         val backup = LauncherBackup(
-            settings = repo.settings.settings.value,
+            settings = repo.settings.settings.first(),
             home = repo.dao.allHomeItems(),
             folders = repo.dao.allFolders(),
             folderApps = repo.dao.allFolderApps(),

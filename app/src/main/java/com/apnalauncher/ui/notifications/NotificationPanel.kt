@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.apnalauncher.ApnaLauncherApp
+import com.apnalauncher.data.LauncherSettings
 
 /** In-launcher notification shade: list, tap to open, swipe to dismiss. */
 @Composable
@@ -27,7 +28,7 @@ fun NotificationPanel(onClose: () -> Unit) {
     val context = LocalContext.current
     val notifications by NotificationStore.notifications.collectAsState()
     val repo = (context.applicationContext as ApnaLauncherApp).repo
-    val settings by repo.settings.settings.collectAsState()
+    val settings by repo.settings.settings.collectAsState(LauncherSettings())
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         Row(

@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.content.pm.ShortcutInfo
-import android.content.pm.ShortcutQuery
+import android.content.pm.LauncherApps.ShortcutQuery
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build

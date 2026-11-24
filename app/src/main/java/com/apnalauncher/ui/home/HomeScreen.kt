@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import com.apnalauncher.ApnaLauncherApp
 import com.apnalauncher.data.AppInfo
@@ -114,7 +116,7 @@ fun HomeScreen(
         val pointY = gridBounds.top + (d.startY + 0.5f) * cellH + d.offsetY
 
         // Drop on dock -> replace that slot.
-        if (dockBounds != Rect.Zero && dockBounds.contains(pointX, pointY) &&
+        if (dockBounds != Rect.Zero && dockBounds.contains(Offset(pointX, pointY)) &&
             d.item.type == HomeItem.TYPE_APP
         ) {
             val slot = ((pointX - dockBounds.left) / (dockBounds.width / 5)).toInt().coerceIn(0, 4)
@@ -211,7 +213,8 @@ fun HomeScreen(
                                                 if (isDragging) {
                                                     translationX = drag?.offsetX ?: 0f
                                                     translationY = drag?.offsetY ?: 0f
-                                                    scale = 1.12f
+                                                    scaleX = 1.12f
+                                                    scaleY = 1.12f
                                                 }
                                             }
                                             .pointerInput(item.id) {
@@ -353,7 +356,7 @@ fun HomeScreen(
 
         // Long-press empty space menu
         if (emptyMenu) {
-            DropdownMenu(onDismissRequest = { emptyMenu = false }) {
+            DropdownMenu(expanded = true, onDismissRequest = { emptyMenu = false }) {
                 DropdownMenuItem(text = { Text("🖼 Wallpaper") }, onClick = {
                     runCatching {
                         context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), "Wallpaper"))
@@ -362,7 +365,7 @@ fun HomeScreen(
                 })
                 DropdownMenuItem(text = { Text("🧩 Widgets") }, onClick = {
                     val id = widgetHost.allocateAppWidgetId()
-                    val pick = Intent(AppWidgetManager.ACTION_PICK_APPWIDGET).apply {
+                    val pick = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
                         putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
                     }
                     runCatching { widgetPicker.launch(pick) }

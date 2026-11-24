@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.util.Xml
+import org.xmlpull.v1.XmlPullParser
 import com.apnalauncher.data.AppInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -43,11 +44,10 @@ class IconPackManager(private val context: Context) {
             val id = res.getIdentifier("appfilter", "xml", packPackage)
             if (id != 0) {
                 val parser = res.getXml(id)
-                val event = Xml.newPullParser().let { it }
-                // Use the parser returned by resources (already positioned at START_DOCUMENT).
+                // The parser returned by resources is already at START_DOCUMENT.
                 var type = parser.eventType
-                while (type != android.util.Xml.END_DOCUMENT) {
-                    if (type == android.util.Xml.START_TAG && parser.name == "item") {
+                while (type != XmlPullParser.END_DOCUMENT) {
+                    if (type == XmlPullParser.START_TAG && parser.name == "item") {
                         val component = parser.getAttributeValue(null, "component").orEmpty()
                         val drawable = parser.getAttributeValue(null, "drawable").orEmpty()
                         if (component.isNotBlank() && drawable.isNotBlank()) {

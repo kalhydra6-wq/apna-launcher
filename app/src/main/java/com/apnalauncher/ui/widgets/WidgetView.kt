@@ -2,6 +2,7 @@ package com.apnalauncher.ui.widgets
 
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetManager
+import androidx.compose.foundation.ExperimentalFoundationApi
 import android.view.View
 import android.widget.FrameLayout
 import androidx.compose.foundation.combinedClickable
@@ -10,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 
 /** Hosts a real AppWidget inside the Compose grid. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WidgetView(
     widgetId: Int,
