@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Apna Launcher</string>
+    <string name="notification_permission_title">Notification access</string>
+    <string name="notification_permission_desc">Apna Launcher ko notification badges aur notification panel dikhane ke liye notification access chahiye.</string>
+</resources>
