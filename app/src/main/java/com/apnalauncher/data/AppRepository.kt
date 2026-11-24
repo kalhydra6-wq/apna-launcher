@@ -67,18 +67,29 @@ class AppRepository(private val context: Context) {
         if (current.dockApps.isEmpty()) {
             settings.update { it.copy(dockApps = items.take(5).map { app -> app.key }) }
         }
-        if (dao.allHomeItems().isEmpty()) {
+        // Fill every remaining app onto the home pages (never wipe a user's own layout).
+        val existing = dao.allHomeItems()
+        val existingKeys = existing.map { it.value }.toSet()
+        val missing = items.filterNot { it.key in existingKeys }
+        if (missing.isNotEmpty()) {
             val cols = current.homeCols.coerceIn(2, 8)
-            items.take(12).forEachIndexed { index, app ->
-                dao.saveHomeItem(
-                    HomeItem(
-                        page = 0,
-                        x = index % cols,
-                        y = index / cols,
-                        type = HomeItem.TYPE_APP,
-                        value = app.key,
-                    ),
-                )
+            val rows = current.homeRows.coerceIn(2, 8)
+            val perPage = cols * rows
+            missing.forEachIndexed { offset, app ->
+                val index = existing.size + offset
+                val page = index / perPage
+                if (page < 5) {
+                    val pos = index % perPage
+                    dao.saveHomeItem(
+                        HomeItem(
+                            page = page,
+                            x = pos % cols,
+                            y = pos / cols,
+                            type = HomeItem.TYPE_APP,
+                            value = app.key,
+                        ),
+                    )
+                }
             }
         }
     }

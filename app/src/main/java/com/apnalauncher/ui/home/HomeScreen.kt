@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.*
@@ -103,6 +104,14 @@ fun HomeScreen(
     }
 
     LaunchedEffect(pagerState.currentPage) { vm.page.value = pagerState.currentPage }
+
+    fun pickWidget() {
+        val id = widgetHost.allocateAppWidgetId()
+        val pick = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
+        }
+        runCatching { widgetPicker.launch(pick) }
+    }
 
     fun finishDrag() {
         val d = drag ?: return
@@ -361,6 +370,26 @@ fun HomeScreen(
             }
         }
 
+        // Quick actions — every major feature is one tap away, no gestures needed.
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 104.dp)
+                .background(
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
+                    RoundedCornerShape(22.dp),
+                )
+                .padding(horizontal = 6.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = { vm.notificationsOpen.value = true }) { Text("🔔", fontSize = 17.sp) }
+            IconButton(onClick = { pickWidget() }) { Text("🧩", fontSize = 17.sp) }
+            IconButton(onClick = { vm.settingsOpen.value = true }) { Text("🎨", fontSize = 17.sp) }
+            IconButton(onClick = { vm.toggleEdit() }) { Text("✏️", fontSize = 17.sp) }
+            IconButton(onClick = { vm.settingsOpen.value = true }) { Text("⚙️", fontSize = 17.sp) }
+        }
+
         // Visible drawer shortcut (works even when the swipe gesture is not detected).
         FloatingActionButton(
             onClick = { vm.drawerOpen.value = true },
@@ -382,12 +411,7 @@ fun HomeScreen(
                     emptyMenu = false
                 })
                 DropdownMenuItem(text = { Text("🧩 Widgets") }, onClick = {
-                    val id = widgetHost.allocateAppWidgetId()
-                    val pick = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
-                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
-                    }
-                    runCatching { widgetPicker.launch(pick) }
-                    emptyMenu = false
+                    pickWidget(); emptyMenu = false
                 })
                 DropdownMenuItem(text = { Text("🎨 Themes") }, onClick = {
                     vm.settingsOpen.value = true; emptyMenu = false
