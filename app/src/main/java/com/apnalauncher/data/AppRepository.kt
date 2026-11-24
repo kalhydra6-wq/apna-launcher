@@ -41,14 +41,6 @@ class AppRepository(private val context: Context) {
 
     init {
         refreshApps()
-        // First run: fill the dock with sensible defaults so the home screen is never empty.
-        scope.launch {
-            val current = settings.settings.first()
-            if (current.dockApps.isEmpty()) {
-                val defaults = _apps.value.take(5).map { it.key }
-                settings.update { it.copy(dockApps = defaults) }
-            }
-        }
     }
 
     /** Re-queries the package manager after install / uninstall / update. */
@@ -67,6 +59,28 @@ class AppRepository(private val context: Context) {
         }.distinctBy { it.key }.sortedBy { it.label.lowercase() }
         _apps.value = items
         icons.clear()
+
+        // First run setup, done AFTER the app list is loaded:
+        // fill the dock and the first home page so the launcher never looks empty.
+        if (items.isEmpty()) return@launch
+        val current = settings.settings.first()
+        if (current.dockApps.isEmpty()) {
+            settings.update { it.copy(dockApps = items.take(5).map { app -> app.key }) }
+        }
+        if (dao.allHomeItems().isEmpty()) {
+            val cols = current.homeCols.coerceIn(2, 8)
+            items.take(12).forEachIndexed { index, app ->
+                dao.saveHomeItem(
+                    HomeItem(
+                        page = 0,
+                        x = index % cols,
+                        y = index / cols,
+                        type = HomeItem.TYPE_APP,
+                        value = app.key,
+                    ),
+                )
+            }
+        }
     }
 
     fun appByKey(key: String): AppInfo? = _apps.value.firstOrNull { it.key == key }
