@@ -6,7 +6,6 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.*
@@ -295,13 +294,9 @@ fun HomeScreen(
         ) {
             repeat(5) { i ->
                 val active = i == pagerState.currentPage
-                val dotWidth by animateDpAsState(
-                    targetValue = if (active) 22.dp else 6.dp,
-                    label = "page-dot",
-                )
                 Box(
                     modifier = Modifier
-                        .size(width = dotWidth, height = 6.dp)
+                        .size(width = if (active) 22.dp else 6.dp, height = 6.dp)
                         .background(
                             if (active) MaterialTheme.colorScheme.primary
                             else Color.White.copy(alpha = 0.45f),
