@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.apnalauncher.ApnaLauncherApp
 import com.apnalauncher.data.AppInfo
+import com.apnalauncher.data.AppUsageStore
 import com.apnalauncher.data.LauncherSettings
 import com.apnalauncher.ui.notifications.NotificationStore
 import kotlinx.coroutines.flow.*
@@ -26,7 +27,14 @@ class DrawerViewModel(app: Application) : AndroidViewModel(app) {
         val filtered = if (q.isBlank()) list else list.filter {
             it.label.contains(q, ignoreCase = true) || it.packageName.contains(q, ignoreCase = true)
         }
-        if (selected == "All") filtered else filtered.filter { it.category == selected }
+        when (selected) {
+            "All" -> filtered
+            "Recent" -> {
+                val top = AppUsageStore.top(getApplication<android.app.Application>().applicationContext, 20)
+                filtered.filter { it.key in top }.sortedBy { top.indexOf(it.key) }
+            }
+            else -> filtered.filter { it.category == selected }
+        }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val sections: StateFlow<Map<String, List<AppInfo>>> = apps.map { list ->

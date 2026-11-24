@@ -5,6 +5,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.material3.*
@@ -17,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.apnalauncher.ApnaLauncherApp
+import com.apnalauncher.data.AppUsageStore
 import com.apnalauncher.data.AppInfo
 import com.apnalauncher.ui.common.AppActions
 import com.apnalauncher.ui.common.AppIconView
@@ -44,7 +47,10 @@ fun AppDrawer(
     val uninstall = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         repo.refreshApps()
     }
-    val tabs = listOf("All", "Social", "Games", "Tools")
+    val tabs = listOf("All", "Recent", "Social", "Games", "Tools")
+    val suggested = remember(apps) {
+        AppUsageStore.top(context, 6).mapNotNull { key -> apps.firstOrNull { it.key == key } }
+    }
 
     // Build offsets for the alphabet strip.
     val indexOffsets = remember(apps) {
@@ -71,6 +77,9 @@ fun AppDrawer(
                     onValueChange = vm::setQuery,
                     placeholder = { Text("Search apps...") },
                     singleLine = true,
+                    trailingIcon = {
+                        if (query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }) { Text("✕") }
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onDismiss) { Text("✕") }
@@ -82,6 +91,33 @@ fun AppDrawer(
                     }
                 }
             }
+            if (query.isBlank() && suggested.isNotEmpty()) {
+                Text("Suggested", style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 8.dp),
+                ) {
+                    suggested.forEach { app ->
+                        AppIconView(
+                            app = app,
+                            showLabel = false,
+                            iconSize = 48.dp,
+                            onClick = {
+                                AppActions.launch(context as androidx.fragment.app.FragmentActivity,
+                                    app, app.key in locked)
+                                onDismiss()
+                            },
+                        )
+                    }
+                }
+            }
+            Text("${apps.size} apps", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp))
             Box(Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
                     state = listState,

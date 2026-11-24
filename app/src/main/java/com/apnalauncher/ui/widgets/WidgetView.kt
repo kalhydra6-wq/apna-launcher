@@ -30,6 +30,10 @@ fun WidgetView(
                 val view = host.createView(context, widgetId, info)
                 if (view != null) {
                     view.setAppWidget(widgetId, info)
+                    view.layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                    )
                     container.addView(view)
                 }
             }

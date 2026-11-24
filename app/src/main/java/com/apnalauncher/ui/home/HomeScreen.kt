@@ -6,6 +6,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.*
@@ -79,6 +80,7 @@ fun HomeScreen(
     var folderPopup by remember { mutableStateOf<String?>(null) }
     var widgetMenu by remember { mutableStateOf<HomeItem?>(null) }
     var renameFolder by remember { mutableStateOf<String?>(null) }
+    var pendingWidgetCell by remember { mutableStateOf(0 to 0) }
     val uninstall = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         repo.refreshApps()
     }
@@ -99,9 +101,9 @@ fun HomeScreen(
                     }
                     widgetConfigure.launch(intent)
                 } catch (_: Exception) {
-                    vm.addWidget(id, 0, 0)
+                    vm.addWidget(id, pendingWidgetCell.first, pendingWidgetCell.second)
                 }
-            } else vm.addWidget(id, 0, 0)
+            } else vm.addWidget(id, pendingWidgetCell.first, pendingWidgetCell.second)
         } else {
             widgetHost.deleteAppWidgetId(id)
         }
@@ -110,6 +112,10 @@ fun HomeScreen(
     LaunchedEffect(pagerState.currentPage) { vm.page.value = pagerState.currentPage }
 
     fun pickWidget() {
+        val used = items.filter { it.page == vm.page.value }.map { it.x to it.y }.toSet()
+        pendingWidgetCell = (0 until settings.homeRows).flatMap { y ->
+            (0 until settings.homeCols).map { x -> x to y }
+        }.firstOrNull { it !in used } ?: (0 to 0)
         val id = widgetHost.allocateAppWidgetId()
         val pick = Intent(AppWidgetManager.ACTION_APPWIDGET_PICK).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
@@ -294,9 +300,13 @@ fun HomeScreen(
         ) {
             repeat(5) { i ->
                 val active = i == pagerState.currentPage
+                val dotWidth by animateDpAsState(
+                    targetValue = if (active) 22.dp else 6.dp,
+                    label = "page-dot",
+                )
                 Box(
                     modifier = Modifier
-                        .size(width = if (active) 22.dp else 6.dp, height = 6.dp)
+                        .size(width = dotWidth, height = 6.dp)
                         .background(
                             if (active) MaterialTheme.colorScheme.primary
                             else Color.White.copy(alpha = 0.45f),
@@ -384,25 +394,56 @@ fun HomeScreen(
             Text("Apps", fontSize = 11.sp)
         }
 
-        // Long-press empty space menu
+        // Long-press empty space = full home edit panel (like a stock launcher).
         if (emptyMenu) {
-            DropdownMenu(expanded = true, onDismissRequest = { emptyMenu = false }) {
-                DropdownMenuItem(text = { Text("🖼 Wallpaper") }, onClick = {
-                    runCatching {
-                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), "Wallpaper"))
+            AlertDialog(
+                onDismissRequest = { emptyMenu = false },
+                title = { Text("Edit home screen") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        TextButton(onClick = {
+                            runCatching {
+                                context.startActivity(Intent.createChooser(
+                                    Intent(Intent.ACTION_SET_WALLPAPER), "Wallpaper",
+                                ))
+                            }
+                            emptyMenu = false
+                        }) { Text("🖼  Change wallpaper") }
+                        TextButton(onClick = { pickWidget(); emptyMenu = false }) {
+                            Text("🧩  Add widget")
+                        }
+                        TextButton(onClick = {
+                            vm.toggleEdit(); emptyMenu = false
+                        }) { Text(if (edit) "✅  Finish editing" else "✏️  Move / remove icons") }
+                        TextButton(onClick = {
+                            vm.settingsOpen.value = true; emptyMenu = false
+                        }) { Text("🎨  Themes & icon settings") }
+                        HorizontalDivider(Modifier.padding(vertical = 6.dp))
+                        Text("Home grid", style = MaterialTheme.typography.labelLarge)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Rows: ${settings.homeRows}", modifier = Modifier.weight(1f))
+                            TextButton(onClick = {
+                                vm.updateSettings { s -> s.copy(homeRows = (s.homeRows - 1).coerceIn(3, 8)) }
+                            }) { Text("−") }
+                            TextButton(onClick = {
+                                vm.updateSettings { s -> s.copy(homeRows = (s.homeRows + 1).coerceIn(3, 8)) }
+                            }) { Text("+") }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Columns: ${settings.homeCols}", modifier = Modifier.weight(1f))
+                            TextButton(onClick = {
+                                vm.updateSettings { s -> s.copy(homeCols = (s.homeCols - 1).coerceIn(3, 8)) }
+                            }) { Text("−") }
+                            TextButton(onClick = {
+                                vm.updateSettings { s -> s.copy(homeCols = (s.homeCols + 1).coerceIn(3, 8)) }
+                            }) { Text("+") }
+                        }
                     }
-                    emptyMenu = false
-                })
-                DropdownMenuItem(text = { Text("🧩 Widgets") }, onClick = {
-                    pickWidget(); emptyMenu = false
-                })
-                DropdownMenuItem(text = { Text("🎨 Themes") }, onClick = {
-                    vm.settingsOpen.value = true; emptyMenu = false
-                })
-                DropdownMenuItem(text = { Text("⚙ Launcher Settings") }, onClick = {
-                    vm.settingsOpen.value = true; emptyMenu = false
-                })
-            }
+                },
+                confirmButton = {
+                    TextButton(onClick = { emptyMenu = false }) { Text("Done") }
+                },
+            )
         }
 
         menuApp?.let { app ->

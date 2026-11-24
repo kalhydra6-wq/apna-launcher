@@ -14,11 +14,13 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.apnalauncher.data.AppInfo
+import com.apnalauncher.data.AppUsageStore
 
 /** Launcher-wide helpers for app actions. */
 object AppActions {
 
     fun launch(activity: FragmentActivity, app: AppInfo, locked: Boolean) {
+        AppUsageStore.record(activity, app.key)
         if (!locked) {
             val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
                 .setComponent(android.content.ComponentName(app.packageName, app.className))
