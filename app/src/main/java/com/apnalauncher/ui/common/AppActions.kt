@@ -60,11 +60,10 @@ object AppActions {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return emptyList()
         return try {
             val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-            val query = ShortcutQuery.Builder()
-                .setQueryFlags(ShortcutQuery.FLAG_MATCH_DYNAMIC or ShortcutQuery.FLAG_MATCH_STATIC or
+            val query = ShortcutQuery()
+                .setQueryFlags(ShortcutQuery.FLAG_MATCH_DYNAMIC or ShortcutQuery.FLAG_MATCH_MANIFEST or
                     ShortcutQuery.FLAG_MATCH_PINNED)
                 .setActivity(android.content.ComponentName(app.packageName, app.className))
-                .build()
             launcherApps.getShortcuts(query, Process.myUserHandle()) ?: emptyList()
         } catch (_: Exception) {
             emptyList()
