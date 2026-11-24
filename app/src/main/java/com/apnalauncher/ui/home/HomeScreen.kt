@@ -6,6 +6,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.*
@@ -20,11 +21,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -161,42 +166,19 @@ fun HomeScreen(
             // Subtle scrim keeps icons readable on any wallpaper while the wallpaper stays visible.
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xD9101424), Color(0xD91B2350)),
+                    listOf(Color(0x8C101426), Color(0x8C1B2350)),
                 ),
             )
-            .pointerInput(settings) {
-                detectTapGestures(
-                    onDoubleTap = {
-                        if (settings.doubleTapLock) lockScreen(context)
-                    },
-                    onLongPress = { emptyMenu = true },
-                )
-            }
-            .pointerInput(settings) {
-                var fired = false
-                detectVerticalDragGestures(
-                    onDragStart = { fired = false },
-                    onDragEnd = { fired = false },
-                    onDragCancel = { fired = false },
-                ) { _, amount ->
-                    if (fired) return@detectVerticalDragGestures
-                    if (settings.swipeUpDrawer && amount < -28) {
-                        fired = true; vm.drawerOpen.value = true
-                    } else if (settings.swipeDownNotifications && amount > 28) {
-                        fired = true; vm.notificationsOpen.value = true
-                    }
-                }
-            }
-            .pointerInput(settings) {
-                var fired = false
-                detectTransformGestures { _, _, zoom, _ ->
-                    if (settings.pinchEdit && zoom < 0.72f && !fired) {
-                        fired = true
-                        vm.toggleEdit()
-                    }
-                    if (zoom > 1.3f) fired = false
-                }
-            },
+            .launcherGestures(
+                swipeUp = settings.swipeUpDrawer,
+                swipeDown = settings.swipeDownNotifications,
+                lock = settings.doubleTapLock,
+                pinch = settings.pinchEdit,
+                onSwipeUp = { vm.drawerOpen.value = true },
+                onSwipeDown = { vm.notificationsOpen.value = true },
+                onDoubleTap = { lockScreen(context) },
+                onPinch = { vm.toggleEdit() },
+            ),
     ) {
         HorizontalPager(
             state = pagerState,
@@ -312,13 +294,18 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             repeat(5) { i ->
+                val active = i == pagerState.currentPage
+                val dotWidth by animateDpAsState(
+                    targetValue = if (active) 22.dp else 6.dp,
+                    label = "page-dot",
+                )
                 Box(
                     modifier = Modifier
-                        .size(if (i == pagerState.currentPage) 8.dp else 5.dp)
+                        .size(width = dotWidth, height = 6.dp)
                         .background(
-                            if (i == pagerState.currentPage) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            androidx.compose.foundation.shape.CircleShape,
+                            if (active) MaterialTheme.colorScheme.primary
+                            else Color.White.copy(alpha = 0.45f),
+                            RoundedCornerShape(3.dp),
                         ),
                 )
             }
@@ -375,8 +362,9 @@ fun HomeScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 104.dp)
+                .shadow(10.dp, RoundedCornerShape(22.dp))
                 .background(
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
                     RoundedCornerShape(22.dp),
                 )
                 .padding(horizontal = 6.dp, vertical = 2.dp),
@@ -515,6 +503,85 @@ fun HomeScreen(
                     TextButton(onClick = { vm.renameFolder(id, name); renameFolder = null }) { Text("Save") }
                 },
             )
+        }
+    }
+}
+
+/**
+ * Gestures observed in the Initial pass, before the pager and icons can consume
+ * touches. This makes swipe / double-tap / pinch work reliably on the launcher.
+ */
+private fun Modifier.launcherGestures(
+    swipeUp: Boolean,
+    swipeDown: Boolean,
+    lock: Boolean,
+    pinch: Boolean,
+    onSwipeUp: () -> Unit,
+    onSwipeDown: () -> Unit,
+    onDoubleTap: () -> Unit,
+    onPinch: () -> Unit,
+): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        var start = Offset.Zero
+        var startTime = 0L
+        var firstDown = true
+        var fired = false
+        var pinchStart = 0f
+        var lastTapTime = 0L
+        var lastTapX = 0f
+
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            val changes = event.changes
+            if (changes.isEmpty()) break
+
+            if (firstDown && changes.any { it.changedToDown() }) {
+                start = changes.first().position
+                startTime = System.currentTimeMillis()
+                firstDown = false
+                fired = false
+                pinchStart = 0f
+            }
+
+            if (pinch && !fired && changes.size >= 2) {
+                val p0 = changes[0].position
+                val p1 = changes[1].position
+                val distance = kotlin.math.hypot(p0.x - p1.x, p0.y - p1.y).toFloat()
+                if (pinchStart == 0f) pinchStart = distance
+                else if (distance < pinchStart * 0.7f) {
+                    fired = true
+                    onPinch()
+                }
+            }
+
+            val current = changes.first().position
+            val dy = current.y - start.y
+            val dx = current.x - start.x
+            if (!fired && changes.size == 1 && System.currentTimeMillis() - startTime < 900) {
+                if (swipeUp && dy < -100) {
+                    fired = true
+                    onSwipeUp()
+                } else if (swipeDown && dy > 100) {
+                    fired = true
+                    onSwipeDown()
+                }
+            }
+
+            if (changes.all { it.changedToUp() }) {
+                val duration = System.currentTimeMillis() - startTime
+                val stayed = kotlin.math.abs(dy) < 24 && kotlin.math.abs(dx) < 24
+                if (lock && !fired && stayed && duration < 280) {
+                    val now = System.currentTimeMillis()
+                    if (now - lastTapTime < 330 && kotlin.math.abs(current.x - lastTapX) < 70) {
+                        onDoubleTap()
+                        lastTapTime = 0L
+                    } else {
+                        lastTapTime = now
+                        lastTapX = current.x
+                    }
+                }
+                break
+            }
         }
     }
 }
